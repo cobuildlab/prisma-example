@@ -1,0 +1,826 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearch"]
+}
+
+generator typegraphql {
+  provider = "typegraphql-prisma"
+  output   = "../prisma/generated/type-graphql"
+}
+
+generator erd {
+  provider = "prisma-erd-generator"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          BigInt    @id @default(autoincrement())
+  uuid        String    @unique @default(uuid())
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt   DateTime? @db.Timestamptz(3)
+  auth0Id     String?   @unique
+  email       String?   @unique
+  phoneNumber String?   @unique
+  isActive    Boolean   @default(true)
+
+  // Relations
+  eventLogs             EventLog[]
+  userSystemRoles       UserSystemRole[]
+  patients              Patient[]
+  staff                 Staff[]
+  userClientRoles       UserClientRole[]
+  userLocationRoles     UserLocationRole[]
+  userOrganizationRoles UserOrganizationRole[]
+}
+
+model Permission {
+  id              BigInt           @id @default(autoincrement())
+  uuid            String           @unique @default(uuid())
+  createdAt       DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime         @updatedAt @db.Timestamptz(3)
+  deletedAt       DateTime?        @db.Timestamptz(3)
+  name            String
+  description     String?
+  level           AuthLevel
+  policies        Policy[]
+  rolePermissions RolePermission[]
+
+  @@unique([name, level])
+}
+
+model Policy {
+  id              BigInt           @id @default(autoincrement())
+  uuid            String           @unique @default(uuid())
+  createdAt       DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime         @updatedAt @db.Timestamptz(3)
+  deletedAt       DateTime?        @db.Timestamptz(3)
+  attributes      Json
+  permissionId    BigInt
+  permission      Permission       @relation(fields: [permissionId], references: [id])
+  rolePermissions RolePermission[]
+
+  @@unique([permissionId, attributes])
+}
+
+model Role {
+  id          BigInt    @id @default(autoincrement())
+  uuid        String    @unique @default(uuid())
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt   DateTime? @db.Timestamptz(3)
+  name        String
+  description String?
+  level       AuthLevel
+
+  clientId BigInt?
+  client   Client? @relation(fields: [clientId], references: [id])
+
+  rolePermissions       RolePermission[]
+  sserSystemRoles       UserSystemRole[]
+  userClientRoles       UserClientRole[]
+  userLocationRoles     UserLocationRole[]
+  userOrganizationRoles UserOrganizationRole[]
+
+  @@unique([name, level, clientId])
+}
+
+model RolePermission {
+  id           BigInt      @id @default(autoincrement())
+  uuid         String      @unique @default(uuid())
+  createdAt    DateTime    @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime    @updatedAt @db.Timestamptz(3)
+  deletedAt    DateTime?   @db.Timestamptz(3)
+  permissionId BigInt?
+  policyId     BigInt?
+  roleId       BigInt
+  permission   Permission? @relation(fields: [permissionId], references: [id], onDelete: Restrict)
+  policy       Policy?     @relation(fields: [policyId], references: [id], onDelete: Restrict)
+  role         Role        @relation(fields: [roleId], references: [id])
+
+  @@unique([roleId, permissionId])
+  @@unique([roleId, policyId])
+}
+
+model UserSystemRole {
+  id        BigInt    @id @default(autoincrement())
+  uuid      String    @unique @default(uuid())
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+  roleId    BigInt
+  userId    BigInt
+  role      Role      @relation(fields: [roleId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@unique([roleId, userId])
+}
+
+model UserClientRole {
+  id        BigInt    @id @default(autoincrement())
+  uuid      String    @unique @default(uuid())
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+  roleId    BigInt
+  userId    BigInt
+  clientId  BigInt
+  role      Role      @relation(fields: [roleId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
+  client    Client    @relation(fields: [clientId], references: [id])
+
+  @@unique([roleId, userId, clientId])
+}
+
+model UserOrganizationRole {
+  id             BigInt       @id @default(autoincrement())
+  uuid           String       @unique @default(uuid())
+  createdAt      DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime     @updatedAt @db.Timestamptz(3)
+  deletedAt      DateTime?    @db.Timestamptz(3)
+  roleId         BigInt
+  userId         BigInt
+  organizationId BigInt
+  role           Role         @relation(fields: [roleId], references: [id])
+  user           User         @relation(fields: [userId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@unique([roleId, userId, organizationId])
+}
+
+model UserLocationRole {
+  id         BigInt    @id @default(autoincrement())
+  uuid       String    @unique @default(uuid())
+  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt  DateTime? @db.Timestamptz(3)
+  roleId     BigInt
+  userId     BigInt
+  locationId BigInt
+  role       Role      @relation(fields: [roleId], references: [id])
+  user       User      @relation(fields: [userId], references: [id])
+  location   Location  @relation(fields: [locationId], references: [id])
+
+  @@unique([roleId, userId, locationId])
+}
+
+model Client {
+  id        BigInt    @id @default(autoincrement())
+  uuid      String    @unique @default(uuid())
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+  name      String
+
+  staffs          Staff[]
+  roles           Role[]
+  organizations   Organization[]
+  userClientRoles UserClientRole[]
+}
+
+model Organization {
+  id                    BigInt                 @id @default(autoincrement())
+  uuid                  String                 @unique @default(uuid())
+  createdAt             DateTime               @default(now()) @db.Timestamptz(3)
+  updatedAt             DateTime               @updatedAt @db.Timestamptz(3)
+  deletedAt             DateTime?              @db.Timestamptz(3)
+  name                  String
+  clientId              BigInt
+  client                Client                 @relation(fields: [clientId], references: [id])
+  locations             Location[]
+  userOrganizationRoles UserOrganizationRole[]
+
+  @@unique([name, clientId])
+}
+
+model Location {
+  id                BigInt             @id @default(autoincrement())
+  uuid              String             @unique @default(uuid())
+  createdAt         DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime           @updatedAt @db.Timestamptz(3)
+  deletedAt         DateTime?          @db.Timestamptz(3)
+  name              String
+  organizationId    BigInt
+  organization      Organization       @relation(fields: [organizationId], references: [id])
+  patientLocations  PatientLocation[]
+  userLocationRoles UserLocationRole[]
+
+  // Relations
+  appointments Appointment[]
+
+  @@unique([name, organizationId])
+}
+
+model PatientLocation {
+  id         BigInt    @id @default(autoincrement())
+  uuid       String    @unique @default(uuid())
+  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt  DateTime? @db.Timestamptz(3)
+  locationId BigInt
+  patientId  BigInt
+  location   Location  @relation(fields: [locationId], references: [id])
+  patient    Patient   @relation(fields: [patientId], references: [id])
+
+  @@unique([patientId, locationId])
+}
+
+model Staff {
+  id          BigInt    @id @default(autoincrement())
+  uuid        String    @unique @default(uuid())
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt   DateTime? @db.Timestamptz(3)
+  dateOfBirth DateTime? @db.Date
+  firstName   String?
+  lastName    String?
+  middleName  String?
+  ssn         String?
+
+  clientId BigInt
+  client   Client @relation(fields: [clientId], references: [id])
+
+  // Relations
+  staffLanguage StaffLanguage[]
+  provider      Provider?
+
+  // ForeignKeys
+  userId          BigInt?
+  user            User?          @relation(fields: [userId], references: [id])
+  staffTypeId     BigInt
+  staffType       StaffType      @relation(fields: [staffTypeId], references: [id])
+  pronounId       BigInt?
+  pronoun         Pronoun?       @relation(fields: [pronounId], references: [id])
+  maritalStatusId BigInt?
+  maritalStatus   MaritalStatus? @relation(fields: [maritalStatusId], references: [id])
+  genderId        BigInt?
+  gender          Gender?        @relation(fields: [genderId], references: [id])
+  raceId          BigInt?
+  race            Race?          @relation(fields: [raceId], references: [id])
+  etnicityId      BigInt?
+  etnicity        Etnicity?      @relation(fields: [etnicityId], references: [id])
+}
+
+model StaffType {
+  id        BigInt    @id @default(autoincrement())
+  uuid      String    @unique @default(uuid())
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+  name      String
+
+  staff Staff[]
+}
+
+model Patient {
+  id                        BigInt    @id @default(autoincrement())
+  uuid                      String    @unique @default(uuid())
+  createdAt                 DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt                 DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt                 DateTime? @db.Timestamptz(3)
+  dateOfBirth               DateTime? @db.Date
+  firstName                 String?
+  lastName                  String?
+  middleName                String?
+  ssn                       String?
+  emailPatient              Boolean   @default(false)
+  smsPatient                Boolean   @default(false)
+  leaveVoiceMail            Boolean   @default(false)
+  contactOfficeHours        Boolean   @default(false)
+  contactOutsideOfficeHours Boolean   @default(false)
+
+  // Text Search
+  configName Unsupported("regconfig")? @default(dbgenerated("'english'::regconfig"))
+  fullText   Unsupported("tsvector")?
+
+  // Relations
+  appointments     Appointment[]
+  adresses         PatientAddress[]
+  emails           PatientEmailAddress[]
+  files            PatientFile[]
+  patientLocations PatientLocation[]
+  phones           PatientPhone[]
+  contacts         PatientContact[]
+  patientLanguages PatientLanguage[]
+  familyHistories  FamilyHistory[]
+  medications      Medication[]
+  vaccinations     Vaccination[]
+  allergies        Allergy[]
+
+
+  // ForeignKeys
+  userId          BigInt?
+  user            User?          @relation(fields: [userId], references: [id])
+  pronounId       BigInt?
+  pronoun         Pronoun?       @relation(fields: [pronounId], references: [id])
+  maritalStatusId BigInt?
+  maritalStatus   MaritalStatus? @relation(fields: [maritalStatusId], references: [id])
+  genderId        BigInt?
+  gender          Gender?        @relation(fields: [genderId], references: [id])
+  raceId          BigInt?
+  race            Race?          @relation(fields: [raceId], references: [id])
+  etnicityId      BigInt?
+  etnicity        Etnicity?      @relation(fields: [etnicityId], references: [id])
+
+  // We need to change this index type to GIN
+  @@index([fullText], map: "fullText_idx")
+}
+
+model Pronoun {
+  id        BigInt    @id @default(autoincrement())
+  uuid      String    @unique @default(uuid())
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+  name      String
+  patients  Patient[]
+  staff     Staff[]
+}
+
+model MaritalStatus {
+  id        BigInt    @id @default(autoincrement())
+  uuid      String    @unique @default(uuid())
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+  name      String
+  patients  Patient[]
+  staff     Staff[]
+}
+
+model Gender {
+  id        BigInt    @id @default(autoincrement())
+  uuid      String    @unique @default(uuid())
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+  name      String
+  patients  Patient[]
+  staff     Staff[]
+}
+
+model Race {
+  id        BigInt    @id @default(autoincrement())
+  uuid      String    @unique @default(uuid())
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+  name      String
+  patients  Patient[]
+  staff     Staff[]
+}
+
+model Etnicity {
+  id        BigInt    @id @default(autoincrement())
+  uuid      String    @unique @default(uuid())
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+  name      String
+  patients  Patient[]
+  staff     Staff[]
+}
+
+model Language {
+  id        BigInt    @id @default(autoincrement())
+  uuid      String    @unique @default(uuid())
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+  name      String
+
+  // ForeignKeys
+  patientLanguages PatientLanguage[]
+  staffLanguage    StaffLanguage[]
+}
+
+model PatientLanguage {
+  id         BigInt    @id @default(autoincrement())
+  uuid       String    @unique @default(uuid())
+  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt  DateTime? @db.Timestamptz(3)
+  patientId  BigInt
+  patient    Patient   @relation(fields: [patientId], references: [id])
+  languageId BigInt
+  language   Language  @relation(fields: [languageId], references: [id])
+
+  @@unique([patientId, languageId])
+}
+
+model StaffLanguage {
+  id         BigInt    @id @default(autoincrement())
+  uuid       String    @unique @default(uuid())
+  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt  DateTime? @db.Timestamptz(3)
+  staffId    BigInt
+  staff      Staff     @relation(fields: [staffId], references: [id])
+  languageId BigInt
+  language   Language  @relation(fields: [languageId], references: [id])
+
+  @@unique([staffId, languageId])
+}
+
+model PatientFile {
+  id        BigInt    @id @default(autoincrement())
+  uuid      String    @unique @default(uuid())
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+
+  patientId  BigInt
+  patient    Patient  @relation(fields: [patientId], references: [id])
+  fileId     BigInt
+  file       File     @relation(fields: [fileId], references: [id])
+  fileTypeId BigInt
+  fileType   FileType @relation(fields: [fileTypeId], references: [id])
+
+  @@unique([patientId, fileId])
+}
+
+model PatientPhone {
+  id        BigInt    @id @default(autoincrement())
+  uuid      String    @unique @default(uuid())
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+  patientId BigInt
+  phoneId   BigInt
+  patient   Patient   @relation(fields: [patientId], references: [id])
+  phone     Phone     @relation(fields: [phoneId], references: [id])
+
+  @@unique([patientId, phoneId])
+}
+
+model Phone {
+  id            BigInt         @id @default(autoincrement())
+  uuid          String         @unique @default(uuid())
+  createdAt     DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime       @updatedAt @db.Timestamptz(3)
+  deletedAt     DateTime?      @db.Timestamptz(3)
+  number        String
+  countryCode   String?
+  extension     String?
+  type          PhoneType
+  patientPhones PatientPhone[]
+}
+
+model PatientAddress {
+  id        BigInt    @id @default(autoincrement())
+  uuid      String    @unique @default(uuid())
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+  patientId BigInt
+  addressId BigInt
+  address   Address   @relation(fields: [addressId], references: [id])
+  patient   Patient   @relation(fields: [patientId], references: [id])
+
+  @@unique([addressId, patientId])
+}
+
+model Address {
+  id              BigInt           @id @default(autoincrement())
+  uuid            String           @unique @default(uuid())
+  createdAt       DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime         @updatedAt @db.Timestamptz(3)
+  deletedAt       DateTime?        @db.Timestamptz(3)
+  street1         String
+  street2         String?
+  city            String
+  state           String
+  country         String?
+  zipCode         String
+  type            AddressType
+  patientAdresses PatientAddress[]
+}
+
+model PatientEmailAddress {
+  id        BigInt    @id @default(autoincrement())
+  uuid      String    @unique @default(uuid())
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+  patientId BigInt
+  email     String
+  patient   Patient   @relation(fields: [patientId], references: [id])
+
+  @@unique([email, patientId])
+}
+
+model PatientContact {
+  id        BigInt    @id @default(autoincrement())
+  uuid      String    @unique @default(uuid())
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+  patientId BigInt
+  patient   Patient   @relation(fields: [patientId], references: [id])
+
+  firstName    String
+  lastName     String?
+  homePhone    String?
+  cellPhone    String?
+  relationship String?
+}
+
+model Appointment {
+  id        BigInt            @id @default(autoincrement())
+  uuid      String            @unique @default(uuid())
+  createdAt DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime          @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime?         @db.Timestamptz(3)
+  date      DateTime?         @db.Timestamptz(3)
+  status    AppointmentStatus
+  type      AppointmentType
+
+  notes String?
+
+  // Foreign keys
+  locationId BigInt
+  location   Location @relation(fields: [locationId], references: [id])
+  patientId  BigInt
+  patient    Patient  @relation(fields: [patientId], references: [id])
+  providerId BigInt
+  provider   Provider @relation(fields: [providerId], references: [id])
+}
+
+model EventLog {
+  id        BigInt   @id @default(autoincrement())
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  operationName String?
+  operationType String?
+
+  args   Json
+  userId BigInt?
+  user   User?   @relation(fields: [userId], references: [id])
+
+  @@index([operationName])
+  @@index([operationType])
+}
+
+model File {
+  id        BigInt    @id @default(autoincrement())
+  uuid      String    @unique @default(uuid())
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+  name      String?
+  url       String?
+  fileUuId  String
+  meta      Json?
+
+  patientFiles PatientFile[]
+}
+
+enum AuthLevel {
+  SYSTEM
+  CLIENT
+  ORGANIZATION
+  LOCATION
+}
+
+model FileType {
+  id           BigInt        @id @default(autoincrement())
+  uuid         String        @unique @default(uuid())
+  createdAt    DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime      @updatedAt @db.Timestamptz(3)
+  deletedAt    DateTime?     @db.Timestamptz(3)
+  name         String
+  // References
+  patientFiles PatientFile[]
+}
+
+enum PhoneType {
+  HOME
+  WORK
+  MOBILE
+  OTHER
+}
+
+enum AddressType {
+  HOME
+  WORK
+  OTHER
+}
+
+enum AppointmentStatus {
+  DRAFT
+  SCHEDULED
+  CANCELLED
+}
+
+enum AppointmentType {
+  INITIAL
+  FOLLOW_UP
+}
+
+model FamilyHistory {
+  id          BigInt    @id @default(autoincrement())
+  uuid        String    @unique @default(uuid())
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt   DateTime? @db.Timestamptz(3)
+  issue       String
+  description String?
+
+  // Relationships
+  familyHistoryMemberTypeId     BigInt
+  familyHistoryMemberType       FamilyHistoryMemberType     @relation(fields: [familyHistoryMemberTypeId], references: [id])
+  familyHistoryHereditaryRiskId BigInt
+  familyHistoryHereditaryRisk   FamilyHistoryHereditaryRisk @relation(fields: [familyHistoryHereditaryRiskId], references: [id])
+  patientId                     BigInt
+  patient                       Patient                     @relation(fields: [patientId], references: [id])
+}
+
+model FamilyHistoryMemberType {
+  id        BigInt    @id @default(autoincrement())
+  uuid      String    @unique @default(uuid())
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+  name      String
+
+  // Relationships
+  familyHistory FamilyHistory[]
+
+  @@unique([name])
+}
+
+model FamilyHistoryHereditaryRisk {
+  id            BigInt          @id @default(autoincrement())
+  uuid          String          @unique @default(uuid())
+  createdAt     DateTime        @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime        @updatedAt @db.Timestamptz(3)
+  deletedAt     DateTime?       @db.Timestamptz(3)
+  name          String
+  // Relationships
+  familyHistory FamilyHistory[]
+
+  @@unique([name])
+}
+
+model Provider {
+  id        BigInt    @id @default(autoincrement())
+  uuid      String    @unique @default(uuid())
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+
+  // Relationships
+  appointments Appointment[]
+
+  // Foreign Keys
+  staff   Staff  @relation(fields: [staffId], references: [id])
+  staffId BigInt @unique
+}
+
+model Medication {
+  id          BigInt    @id @default(autoincrement())
+  uuid        String    @unique @default(uuid())
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt   DateTime? @db.Timestamptz(3)
+  type        MedicationType
+  name        String
+  description String?
+  notes       String?
+
+  // Relationships
+  medicationRecord MedicationRecord[]
+
+  // Foreign Keys
+  patientId   BigInt
+  patient     Patient   @relation(fields: [patientId], references: [id])
+}
+
+model MedicationRecord {
+  id          BigInt    @id @default(autoincrement())
+  uuid        String    @unique @default(uuid())
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt   DateTime? @db.Timestamptz(3)
+  productName String
+  date        DateTime  @db.Timestamptz(3)
+  expiryDate  DateTime  @db.Timestamptz(3)
+  dosage      String
+
+  // Foreign Keys
+  medicationId  BigInt
+  medication    Medication  @relation(fields: [medicationId], references: [id])
+}
+
+enum MedicationType {
+  PRESCRIPTION
+  OTHER_MEDICATION
+}
+
+model Vaccination {
+  id              BigInt    @id @default(autoincrement())
+  uuid            String    @unique @default(uuid())
+  createdAt       DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt       DateTime? @db.Timestamptz(3)
+  disease         String
+  description     String?
+
+  // Foreign Keys
+  patientId             BigInt
+  patient               Patient           @relation(fields: [patientId], references: [id])
+  vaccinationRecords    VaccinationRecord[]
+  vaccinationStatusId  BigInt
+  vaccinationStatus    VaccinationStatus @relation(fields: [vaccinationStatusId], references: [id])
+}
+
+model VaccinationRecord {
+  id              BigInt    @id @default(autoincrement())
+  uuid            String    @unique @default(uuid())
+  createdAt       DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt       DateTime? @db.Timestamptz(3)
+
+  // Fields
+  vaccine         String
+  nextVaccination DateTime?
+  lastVaccination DateTime?
+
+  // Foreign Keys
+  vaccinationId   BigInt
+  vaccination     Vaccination  @relation(fields: [vaccinationId], references: [id])
+}
+
+model VaccinationStatus {
+  id        BigInt    @id @default(autoincrement())
+  uuid      String    @unique @default(uuid())
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+  name      String
+
+  // Relations
+  vaccinations Vaccination[]
+
+  @@unique([name])
+}
+
+model Allergy {
+  id        BigInt    @id @default(autoincrement())
+  uuid      String    @unique @default(uuid())
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+
+  // Fields
+  name      String
+  description String?
+  sourceDescription String?
+  testedAt  DateTime? @db.Timestamptz(3)
+  allergySeverity AllergySeverity
+  allergySource AllergySource
+  allergyCategory AllergyCategory
+
+  // Foreign Keys
+  patientId             BigInt
+  patient               Patient             @relation(fields: [patientId], references: [id])
+  allergyReactionTypeId BigInt
+  allergyReactionType   AllergyReactionType @relation(fields: [allergyReactionTypeId], references: [id])
+}
+
+enum AllergySeverity {
+  MILD
+  MINIMAL
+  MODERATE
+  SEVERE
+  VERY_SEVERE
+  FATAL
+}
+
+enum AllergySource {
+  TESTED
+  VERBAL
+}
+
+enum AllergyCategory {
+  GENERAL
+  MEDICAL
+  FAMILIAL
+}
+
+model AllergyReactionType {
+  id        BigInt    @id @default(autoincrement())
+  uuid      String    @unique @default(uuid())
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+  name      String
+
+  // Relations
+  allergies Allergy[]
+  @@unique([name])
+}

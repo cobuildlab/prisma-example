@@ -1,0 +1,17 @@
+# don't ever lint node_modules
+node_modules
+# don't lint build output (make sure it's set to your correct build folder name)
+dist
+.eslintrc.js
+.eslintignore
+.husky/pre-commit
+ormconfig.json
+tsconfig.json
+.env
+package-lock.json
+package.json
+prisma/
+babel.config.js
+prisma
+etc/
+src/shared/permissions.json

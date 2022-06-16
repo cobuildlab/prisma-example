@@ -1,0 +1,16 @@
+.idea/
+.vscode/
+node_modules/
+build/
+tmp/
+temp/
+.env
+.env.*
+dist
+prisma/generated
+
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml
+.DS_Store

@@ -1,0 +1,8 @@
+.eslintignore
+.gitignore
+.husky/pre-commit
+.husky/prepare-commit-msg
+.prettierignore
+prisma/
+.ebextensions/
+etc/
