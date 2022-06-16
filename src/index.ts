@@ -57,7 +57,7 @@ const initializeApp = async (): Promise<void> => {
 
 initializeApp()
   .then(() => {
-    console.log('Starting Medone...');
+    console.log('Starting cobuildlab...');
   })
   .catch((error) => console.log(error));
 

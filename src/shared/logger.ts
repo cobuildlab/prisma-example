@@ -16,7 +16,7 @@ if (process.env.AWS_CLOUDWATCH_ENABLE !== undefined) {
     region: process.env.AWS_REGION,
   });
   const cloudwatchConfig: CloudwatchTransportOptions = {
-    name: 'Medone Backend',
+    name: 'cobuildlab Backend',
     logGroupName: process.env.AWS_CLOUDWATCH_GROUP_NAME as string,
     logStreamName: `${process.env.AWS_CLOUDWATCH_GROUP_NAME ?? ''}-${process.env.NODE_ENV ?? ''}`,
     awsAccessKeyId: process.env.CLOUDWATCH_ACCESS_KEY,

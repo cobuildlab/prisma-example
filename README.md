@@ -1,11 +1,11 @@
-# medONE backend
+# cobuildlab backend
 
 ## Set Environment Variables (create .env file)
 
 ```
 DATABASE_URL=postgresql://<user/pass>@localhost:5432/<dbname>?schema=public
-AUTH0_AUDIENCE=https://medonecorp.com
-AUTH0_ISSUER_BASE_URL=https://medone-main.us.auth0.com/
+AUTH0_AUDIENCE=https://cobuildlabcorp.com
+AUTH0_ISSUER_BASE_URL=https://cobuildlab-main.us.auth0.com/
 DEBUG=true
 AWS_REGION=us-east-1
 AWS_CLOUDWATCH_ENABLE=true
