@@ -38,7 +38,7 @@
     "@types/express": "^4.17.13",
     "@types/node-fetch": "^2.6.1",
     "@types/uploadcare": "^0.4.1",
-    "apollo-server-core": "^3.6.1",
+    "apollo-server-core": "^3.10.1",
     "apollo-server-express": "^3.6.1",
     "aws-sdk": "^2.1058.0",
     "class-validator": "^0.13.2",
