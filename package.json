@@ -91,7 +91,7 @@
     "pg": "^8.7.3",
     "prettier": "2.5.1",
     "prisma": "3.9.2",
-    "prisma-erd-generator": "0.9.0",
+    "prisma-erd-generator": "1.2.1",
     "slugify": "^1.6.5",
     "ts-node": "^10.4.0",
     "tslib": "^2.3.1",
