@@ -87,7 +87,7 @@
     "jest": "^27.4.7",
     "jira-prepare-commit-msg": "^1.6.2",
     "lint-staged": "^12.1.7",
-    "nodemon": "^2.0.15",
+    "nodemon": "^2.0.20",
     "pg": "^8.7.3",
     "prettier": "2.5.1",
     "prisma": "3.9.2",
